@@ -1,0 +1,44 @@
+name: Format Markdown and Push to Site Repo
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed for pushing formatted changes
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Prettier
+        run: npm install -g prettier
+
+      - name: Run Prettier on Markdown
+        run: prettier --write "**/*.md"
+
+      - name: Commit formatted changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff-index --quiet HEAD || git commit -m "chore: format markdown"
+
+      - name: Push to site repo (using GitHub App)
+        uses: tibdex/github-app-token@v2
+        id: generate-token
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
+
+      - name: Push changes
+        run: git push https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/username/username.github.io main
