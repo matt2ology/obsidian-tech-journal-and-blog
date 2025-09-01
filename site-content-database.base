@@ -1,0 +1,18 @@
+views:
+  - type: table
+    name: Table
+    filters:
+      and:
+        - categories.containsAny("atomic", "blog", "journal", "literature", "reference")
+    order:
+      - file.name
+      - file.ctime
+      - draft
+      - categories
+    sort:
+      - property: categories
+        direction: DESC
+      - property: file.ctime
+        direction: DESC
+    columnSize:
+      file.ctime: 192
