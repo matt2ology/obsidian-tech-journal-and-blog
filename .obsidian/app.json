@@ -1,0 +1,14 @@
+{
+  "alwaysUpdateLinks": true,
+  "newFileLocation": "folder",
+  "newFileFolderPath": "post/_inbox",
+  "useMarkdownLinks": true,
+  "showUnsupportedFiles": true,
+  "vimMode": true,
+  "newLinkFormat": "absolute",
+  "showLineNumber": true,
+  "userIgnoreFilters": [
+    "templates/"
+  ],
+  "promptDelete": false
+}
