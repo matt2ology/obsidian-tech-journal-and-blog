@@ -84,6 +84,8 @@ jobs:
         with:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
+          installation_retrieval_mode: repository
+          installation_retrieval_payload: matt2ology/matt2ology.github.io
 
       - name: Push changes
         run: git push https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/matt2ology/matt2ology.github.io main
