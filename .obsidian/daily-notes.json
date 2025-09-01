@@ -1,0 +1,5 @@
+{
+  "folder": "post/journal",
+  "template": "templates/journal",
+  "format": "YYYY-MM-DD-ddd"
+}
