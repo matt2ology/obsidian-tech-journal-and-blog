@@ -90,10 +90,18 @@ jobs:
       - name: Push changes to site repo
         run: |
           git clone https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/matt2ology/matt2ology.github.io.git site-repo
-          rsync -av --delete --exclude ".git" . site-repo/
+
+          # Copy ONLY content folders, not everything
+          rsync -av --delete \
+            --exclude ".git" \
+            post/ site-repo/content/post/
+          rsync -av --delete \
+            --exclude ".git" \
+            references/ site-repo/content/references/
+
           cd site-repo
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --quiet && git diff --staged --quiet || git commit -m "chore: sync from obsidian-tech-journal-and-blog"
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: sync Markdown content from obsidian-tech-journal-and-blog"
           git push origin main
