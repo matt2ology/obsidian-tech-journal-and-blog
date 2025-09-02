@@ -68,7 +68,7 @@ Why: Keeps raw notes separate from your published site.
 
 1. In your App settings → **Generate a private key**. Save the `.pem` file.
 2. Copy your **App ID** (number shown at the top).
-3. Go to **`username/username.github.io`** (`username.github.io`) → `Settings → Secrets and variables → Actions → New repository secret`:
+3. Go to **`obsidian-notes-repo`** repo page (your notes & content) → `Settings → Secrets and variables → Actions → New repository secret`:
 
    - `APP_ID` → the numeric App ID of your GitHub App (from the App settings page, not Client ID).
    - `PRIVATE_KEY` → generate a **Private Key** if you don’t already have one. Save the PEM file, open it, and paste the entire contents (including `-----BEGIN PRIVATE KEY-----` … `-----END PRIVATE KEY-----`) into a secret called `PRIVATE_KEY`.
@@ -125,7 +125,9 @@ jobs:
           private_key: ${{ secrets.PRIVATE_KEY }}
 
       - name: Push changes to site repo
-        run: git push https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/username/username.github.io main
+        run: |
+        git push https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/username/username.github.io main
+        git push origin main
 ```
 
 ---
