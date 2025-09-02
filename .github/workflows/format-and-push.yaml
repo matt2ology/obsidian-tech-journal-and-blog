@@ -78,14 +78,14 @@ jobs:
           git add .
           git diff-index --quiet HEAD || git commit -m "chore: format markdown, rename files, fix links"
 
-      - name: Push to site repo (Generate GitHub App token)
+      - name: Generate GitHub App token
         id: generate-token
         uses: tibdex/github-app-token@v2
         with:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
-          installation_retrieval_mode: repository
-          installation_retrieval_payload: matt2ology/matt2ology.github.io
 
-      - name: Push changes
-        run: git push https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/matt2ology/matt2ology.github.io main
+      - name: Push changes to site repo
+        run: |
+          git remote set-url origin https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/matt2ology/matt2ology.github.io.git
+          git push origin main
