@@ -59,7 +59,7 @@ Why: Keeps raw notes separate from your published site.
 1. Open your new App in [GitHub Apps settings](https://github.com/settings/apps).
 2. Click **Install App** (left sidebar).
 3. Choose your personal account.
-4. Select **Only select repositories** → choose `username/username.github.io`.
+4. Select **Only select repositories** → choose `username/username.github.io`, `obsidian-notes-repo`.
 5. Confirm installation.
 
 ---
