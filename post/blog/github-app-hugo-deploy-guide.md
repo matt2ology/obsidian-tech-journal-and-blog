@@ -70,8 +70,8 @@ Why: Keeps raw notes separate from your published site.
 2. Copy your **App ID** (number shown at the top).
 3. Go to **`username/username.github.io`** (`username.github.io`) → `Settings → Secrets and variables → Actions → New repository secret`:
 
-   - `APP_ID` → your App ID
-   - `PRIVATE_KEY` → contents of the `.pem` file (entire text including `-----BEGIN PRIVATE KEY-----`).
+   - `APP_ID` → the numeric App ID of your GitHub App (from the App settings page, not Client ID).
+   - `PRIVATE_KEY` → generate a **Private Key** if you don’t already have one. Save the PEM file, open it, and paste the entire contents (including `-----BEGIN PRIVATE KEY-----` … `-----END PRIVATE KEY-----`) into a secret called `PRIVATE_KEY`.
 
 ✅ This allows Actions to authenticate as the GitHub App.
 
