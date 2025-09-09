@@ -1,4 +1,4 @@
-name: Format Markdown and Push to Site Repo
+name: Format Notes and Push to Site
 
 on:
   push:
@@ -6,44 +6,66 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # needed for pushing formatted changes
+  contents: write
 
 jobs:
-  format:
+  format-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      # 1. Checkout notes
+      - name: Checkout notes
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false # Prevent Git from caching credentials
 
+      # 2. Setup Node.js (for Prettier)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "22"
 
       - name: Install Prettier
-        run: npm install -g prettier
+        run: npm install -g prettier@3
 
-      - name: Run Prettier on Markdown
-        run: prettier --write "**/*.md"
+      # 3. Get GitHub App token using Client ID
+      - name: Get GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          # Input is called "app-id" but accepts Client ID or App ID
+          app-id: ${{ vars.CLIENT_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: |
+            obsidian-notes-repo
+            ${{ github.repository_owner }}.github.io
 
-      - name: Rename Markdown files (spaces → dashes, skip README)
+      # 4. Slugify + rename Markdown files
+      - name: Slugify + rename Markdown files (ASCII, spaces → dashes, skip README)
         run: |
+          set -euo pipefail
           find . -type f -name "*.md" ! -path "./templates/*" | while read -r file; do
             base=$(basename "$file")
             dir=$(dirname "$file")
-            if [ "$base" = "README.md" ]; then
-              continue
-            fi
-            newbase=$(echo "$base" | tr '[:upper:]' '[:lower:]' | sed -E 's/[ ]+/-/g')
-            if [ "$base" != "$newbase" ]; then
-              git mv "$file" "$dir/$newbase"
-            fi
+            [ "$base" = "README.md" ] && continue
+
+            # Normalize non-ASCII → ASCII, lowercase, spaces → dashes
+            slug=$(echo "$base" | iconv -f UTF-8 -t ASCII//TRANSLIT)
+            slug=$(echo "$slug" | tr '[:upper:]' '[:lower:]' | sed -E 's/[ ]+/-/g')
+            [ "$base" = "$slug" ] && continue
+
+            target="$dir/$slug"
+            i=1
+            while [ -e "$target" ]; do
+              target="${dir}/${slug%.md}-$i.md"
+              i=$((i+1))
+            done
+
+            git mv "$file" "$target"
           done
 
+      # 5. Fix Obsidian-style links
       - name: Fix Obsidian-style links after renaming
         run: |
+          set -euo pipefail
           find . -type f -name "*.md" ! -path "./templates/*" | while read -r file; do
             sed -E -i '
               s/\[([^\]]+)\]\(([^\)]+)[ ]+([^\)]+)\.md\)/[\1](\L\2-\3.md)/g;
@@ -51,8 +73,10 @@ jobs:
             ' "$file"
           done
 
+      # 6. Add full-path .md links next to Hugo ref links
       - name: Add full-path Markdown links next to Hugo ref links (no duplicates)
         run: |
+          set -euo pipefail
           find . -type f -name "*.md" ! -path "./templates/*" | while read -r file; do
             awk '
               # Case 1: Skip commented Hugo refs
@@ -73,35 +97,35 @@ jobs:
             ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
           done
 
-      - name: Commit formatted changes
+      # 7. Format Markdown with Prettier
+      - name: Format Markdown with Prettier
+        run: prettier --write "**/*.md"
+
+      # 8. Commit changes back to Repo A
+      - name: Commit changes back to Repo A
+        env:
+          GH_APP_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
-          git diff-index --quiet HEAD || git commit -m "chore: format markdown, rename files, fix links"
-
-      - name: Generate GitHub App token
-        id: generate-token
-        uses: tibdex/github-app-token@v2
-        with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.PRIVATE_KEY }}
-
-      - name: Push changes to site repo
-        run: |
-          git clone https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/matt2ology/matt2ology.github.io.git site-repo
-
-          # Copy ONLY content folders, not everything
-          rsync -av --delete \
-            --exclude ".git" \
-            post/ site-repo/content/post/
-          rsync -av --delete \
-            --exclude ".git" \
-            references/ site-repo/content/references/
-
-          cd site-repo
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set -euo pipefail
+          git config user.name  "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_APP_TOKEN}@github.com/${{ github.repository_owner }}/obsidian-notes-repo.git"
           git add -A
-          git diff --quiet && git diff --staged --quiet || git commit -m "chore: sync Markdown content from obsidian-tech-journal-and-blog"
+          git commit -m "Normalize + link-fix + Prettier" || echo "No changes"
+          git push origin main
+
+      # 9. Update Hugo site repo submodule pointer
+      - name: Update Hugo site repo submodule pointer
+        env:
+          GH_APP_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          git config --global url."https://x-access-token:${GH_APP_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git clone "https://x-access-token:${GH_APP_TOKEN}@github.com/${{ github.repository_owner }}/${{ github.repository_owner }}.github.io.git" site-repo
+          cd site-repo
+          git submodule update --init --remote content
+          git config user.name  "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          git add content
+          git commit -m "chore: update content submodule to latest" || echo "No submodule changes"
           git push origin main
